@@ -1,23 +1,40 @@
 import { api } from './client'
 import { transformStats } from '@/utils/transform'
 import { API_BASE_URL } from '@/constants/config'
+import { mockStats, mockDailyStats, mockUrgencyStats, mockSymptomStats } from '@/mocks/data'
 import type { Stats, StatsRaw, DailyStats, UrgencyStats, SymptomStat } from '@/types'
 
 export async function fetchStats(): Promise<Stats> {
-  const raw = await api.get<StatsRaw>('/stats')
-  return transformStats(raw)
+  try {
+    const raw = await api.get<StatsRaw>('/stats')
+    return transformStats(raw)
+  } catch {
+    return mockStats
+  }
 }
 
 export async function fetchDailyStats(days: number = 7): Promise<DailyStats[]> {
-  return api.get<DailyStats[]>('/stats/daily', { days })
+  try {
+    return await api.get<DailyStats[]>('/stats/daily', { days })
+  } catch {
+    return mockDailyStats.slice(-days)
+  }
 }
 
 export async function fetchUrgencyStats(): Promise<UrgencyStats[]> {
-  return api.get<UrgencyStats[]>('/stats/urgency')
+  try {
+    return await api.get<UrgencyStats[]>('/stats/urgency')
+  } catch {
+    return mockUrgencyStats
+  }
 }
 
 export async function fetchSymptomStats(limit: number = 10): Promise<SymptomStat[]> {
-  return api.get<SymptomStat[]>('/stats/symptoms', { limit })
+  try {
+    return await api.get<SymptomStat[]>('/stats/symptoms', { limit })
+  } catch {
+    return mockSymptomStats.slice(0, limit)
+  }
 }
 
 export async function exportPdf(): Promise<void> {
