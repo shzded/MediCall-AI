@@ -83,6 +83,8 @@ export interface CallFilters {
   search?: string
   status?: 'unread' | 'read' | ''
   urgency?: 'high' | 'medium' | 'low' | ''
+  dateFrom?: string
+  dateTo?: string
   skip?: number
   limit?: number
   sort?: string

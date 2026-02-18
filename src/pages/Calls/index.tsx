@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search, Filter, ChevronLeft, ChevronRight, Inbox, SearchX,
-  Eye, EyeOff, Trash2, ArrowUpDown, ArrowUp, ArrowDown,
+  Eye, EyeOff, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X,
 } from 'lucide-react'
 import clsx from 'clsx'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -25,9 +26,12 @@ type SortField = 'time' | 'urgency' | 'name'
 type SortOrder = 'asc' | 'desc'
 
 function CallsContent() {
-  const [searchInput, setSearchInput] = useState('')
+  const [searchParams] = useSearchParams()
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') ?? '')
   const [statusFilter, setStatusFilter] = useState<'' | 'unread' | 'read'>('')
   const [urgencyFilter, setUrgencyFilter] = useState<'' | 'high' | 'medium' | 'low'>('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(0)
   const [sortField, setSortField] = useState<SortField>('time')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -40,11 +44,13 @@ function CallsContent() {
     search: debouncedSearch || undefined,
     status: statusFilter || undefined,
     urgency: urgencyFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
     skip: page * PAGE_SIZE,
     limit: PAGE_SIZE,
     sort: sortField,
     order: sortOrder,
-  }), [debouncedSearch, statusFilter, urgencyFilter, page, sortField, sortOrder])
+  }), [debouncedSearch, statusFilter, urgencyFilter, dateFrom, dateTo, page, sortField, sortOrder])
 
   const { calls, total, loading, error, refetch, toggleStatus, removeCall } = useCalls(filters)
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
@@ -87,7 +93,7 @@ function CallsContent() {
       : <ArrowDown size={14} className="text-primary-blue" />
   }
 
-  const hasFilters = debouncedSearch || statusFilter || urgencyFilter
+  const hasFilters = debouncedSearch || statusFilter || urgencyFilter || dateFrom || dateTo
   const isEmpty = !loading && calls.length === 0
 
   return (
@@ -127,6 +133,32 @@ function CallsContent() {
             <option value="medium">{t.calls.medium}</option>
             <option value="low">{t.calls.low}</option>
           </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-medium-gray">{t.filters.dateFrom}</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => { setDateFrom(e.target.value); setPage(0) }}
+            className="rounded-lg bg-white px-3 py-2 text-sm text-dark-gray shadow-sm border-0 outline-none cursor-pointer"
+          />
+          <label className="text-sm text-medium-gray">{t.filters.dateTo}</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => { setDateTo(e.target.value); setPage(0) }}
+            className="rounded-lg bg-white px-3 py-2 text-sm text-dark-gray shadow-sm border-0 outline-none cursor-pointer"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); setPage(0) }}
+              className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-sm text-medium-gray shadow-sm hover:bg-light-gray transition-colors"
+            >
+              <X size={14} />
+              {t.filters.resetDates}
+            </button>
+          )}
         </div>
       </div>
 

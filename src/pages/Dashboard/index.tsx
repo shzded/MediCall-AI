@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { Phone, AlertTriangle, Clock, CalendarDays, RefreshCw, Inbox } from 'lucide-react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import StatCard from '@/components/StatCard'
@@ -10,43 +10,23 @@ import { useStats } from '@/hooks/useStats'
 import { useCalls } from '@/hooks/useCalls'
 import { useModal } from '@/hooks/useModal'
 import { t } from '@/constants/translations'
-import { REFRESH_INTERVAL } from '@/constants/config'
 import { formatDuration } from '@/utils/format'
 
 function DashboardContent() {
-  const { data: stats, loading: statsLoading, error: statsError, execute: refreshStats } = useStats(true)
+  const { data: stats, loading: statsLoading, error: statsError, execute: refreshStats } = useStats()
   const filters = { limit: 5 }
   const { calls, loading: callsLoading, error: callsError, refetch: refreshCalls, toggleStatus } = useCalls(filters)
   const modal = useModal()
 
-  const [refreshing, setRefreshing] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Auto-refresh indicator pulse
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setRefreshing(true)
-      refreshCalls().catch(() => {}).finally(() => {
-        setTimeout(() => setRefreshing(false), 1000)
-      })
-    }, REFRESH_INTERVAL)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [refreshCalls])
-
   const handleManualRefresh = useCallback(() => {
-    setRefreshing(true)
-    Promise.all([refreshStats(), refreshCalls()]).catch(() => {}).finally(() => {
-      setTimeout(() => setRefreshing(false), 1000)
-    })
+    Promise.all([refreshStats(), refreshCalls()]).catch(() => {})
   }, [refreshStats, refreshCalls])
 
   const yesterdayDiff = stats ? stats.todayCalls - stats.yesterdayCalls : 0
 
   return (
     <div className="space-y-6">
-      {/* Auto-refresh indicator */}
+      {/* Refresh button */}
       <div className="flex items-center justify-between">
         <div />
         <button
@@ -54,8 +34,8 @@ function DashboardContent() {
           className="flex items-center gap-2 text-xs text-medium-gray hover:text-dark-gray transition-colors"
           aria-label="Aktualisieren"
         >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-          {refreshing ? t.dashboard.refreshing : 'Auto-Refresh 30s'}
+          <RefreshCw size={14} />
+          {t.dashboard.refreshing}
         </button>
       </div>
 

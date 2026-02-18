@@ -9,7 +9,7 @@ interface AsyncState<T> {
 export function useAsync<T>(asyncFn: () => Promise<T>, immediate = true) {
   const [state, setState] = useState<AsyncState<T>>({
     data: null,
-    loading: immediate,
+    loading: false,
     error: null,
   })
   const mountedRef = useRef(true)
@@ -22,7 +22,7 @@ export function useAsync<T>(asyncFn: () => Promise<T>, immediate = true) {
   }, [])
 
   const execute = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }))
+    setState(prev => ({ ...prev, loading: prev.data === null, error: null }))
     try {
       const result = await asyncFn()
       if (mountedRef.current) {

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Menu, Search, Bell, User } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { t } from '@/constants/translations'
 
 interface Props {
@@ -16,7 +17,16 @@ const pageTitles: Record<string, string> = {
 
 export default function TopBar({ onMenuToggle, unreadCount = 0 }: Props) {
   const location = useLocation()
+  const navigate = useNavigate()
   const title = pageTitles[location.pathname] ?? 'MediCall AI'
+  const [searchValue, setSearchValue] = useState('')
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      navigate(`/calls?search=${encodeURIComponent(searchValue.trim())}`)
+      setSearchValue('')
+    }
+  }
 
   return (
     <header className="sticky top-0 z-30 flex items-center gap-4 bg-white/80 backdrop-blur-sm px-4 py-3 shadow-sm sm:px-6">
@@ -37,6 +47,9 @@ export default function TopBar({ onMenuToggle, unreadCount = 0 }: Props) {
         <Search size={16} className="text-medium-gray flex-shrink-0" />
         <input
           type="text"
+          value={searchValue}
+          onChange={e => setSearchValue(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={t.topbar.search}
           className="bg-transparent text-sm text-dark-gray placeholder-medium-gray outline-none w-full"
         />

@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { CalendarDays, Clock, AlertTriangle, AlertCircle, FileDown } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { CalendarDays, Clock, AlertTriangle, AlertCircle, FileDown, X } from 'lucide-react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import StatCard from '@/components/StatCard'
 import BarChart from './BarChart'
@@ -32,10 +32,17 @@ const urgencyBgColors: Record<string, string> = {
 }
 
 function AnalyticsContent() {
-  const { data: stats, loading: statsLoading } = useStats()
-  const { data: daily, loading: dailyLoading } = useDailyStats()
-  const { data: urgency, loading: urgencyLoading } = useUrgencyStats()
-  const { data: symptoms, loading: symptomsLoading } = useSymptomStats(5)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const range = useMemo(() => {
+    if (!dateFrom && !dateTo) return undefined
+    return { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }
+  }, [dateFrom, dateTo])
+
+  const { data: stats, loading: statsLoading } = useStats(false, range)
+  const { data: daily, loading: dailyLoading } = useDailyStats(7, range)
+  const { data: urgency, loading: urgencyLoading } = useUrgencyStats(range)
+  const { data: symptoms, loading: symptomsLoading } = useSymptomStats(5, range)
   const { addToast } = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -55,9 +62,33 @@ function AnalyticsContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header with PDF export */}
-      <div className="flex items-center justify-between">
-        <div />
+      {/* Header with date range + PDF export */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="text-sm text-medium-gray">{t.filters.dateFrom}</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="rounded-lg bg-white px-3 py-2 text-sm text-dark-gray shadow-sm border-0 outline-none cursor-pointer"
+          />
+          <label className="text-sm text-medium-gray">{t.filters.dateTo}</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="rounded-lg bg-white px-3 py-2 text-sm text-dark-gray shadow-sm border-0 outline-none cursor-pointer"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo('') }}
+              className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-sm text-medium-gray shadow-sm hover:bg-light-gray transition-colors"
+            >
+              <X size={14} />
+              {t.filters.resetDates}
+            </button>
+          )}
+        </div>
         <button
           onClick={handleExport}
           disabled={exporting}

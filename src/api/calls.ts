@@ -3,6 +3,8 @@ import { transformCall } from '@/utils/transform'
 import { mockCalls } from '@/mocks/data'
 import type { Call, CallRaw, CallsResponse, CallFilters } from '@/types'
 
+const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true'
+
 function filterMockCalls(filters: CallFilters): { calls: Call[]; total: number } {
   let result = [...mockCalls]
 
@@ -17,6 +19,13 @@ function filterMockCalls(filters: CallFilters): { calls: Call[]; total: number }
   }
   if (filters.urgency) {
     result = result.filter(c => c.urgency === filters.urgency)
+  }
+  if (filters.dateFrom) {
+    result = result.filter(c => c.time >= filters.dateFrom!)
+  }
+  if (filters.dateTo) {
+    const endOfDay = filters.dateTo + 'T23:59:59Z'
+    result = result.filter(c => c.time <= endOfDay)
   }
 
   if (filters.sort) {
@@ -38,6 +47,7 @@ function filterMockCalls(filters: CallFilters): { calls: Call[]; total: number }
 }
 
 export async function fetchCalls(filters: CallFilters = {}): Promise<{ calls: Call[]; total: number }> {
+  if (!USE_BACKEND) return filterMockCalls(filters)
   try {
     const response = await api.get<CallsResponse>('/calls', {
       search: filters.search,
@@ -58,6 +68,11 @@ export async function fetchCalls(filters: CallFilters = {}): Promise<{ calls: Ca
 }
 
 export async function fetchCall(id: number): Promise<Call> {
+  if (!USE_BACKEND) {
+    const call = mockCalls.find(c => c.id === id)
+    if (call) return call
+    throw new Error('Call not found')
+  }
   try {
     const raw = await api.get<CallRaw>(`/calls/${id}`)
     return transformCall(raw)
@@ -69,6 +84,14 @@ export async function fetchCall(id: number): Promise<Call> {
 }
 
 export async function updateCallStatus(id: number): Promise<Call> {
+  if (!USE_BACKEND) {
+    const call = mockCalls.find(c => c.id === id)
+    if (call) {
+      call.status = call.status === 'unread' ? 'read' : 'unread'
+      return call
+    }
+    throw new Error('Call not found')
+  }
   try {
     const raw = await api.patch<CallRaw>(`/calls/${id}/status`)
     return transformCall(raw)
@@ -83,6 +106,14 @@ export async function updateCallStatus(id: number): Promise<Call> {
 }
 
 export async function updateCallNotes(id: number, notes: string): Promise<Call> {
+  if (!USE_BACKEND) {
+    const call = mockCalls.find(c => c.id === id)
+    if (call) {
+      call.notes = notes
+      return call
+    }
+    throw new Error('Call not found')
+  }
   try {
     const raw = await api.patch<CallRaw>(`/calls/${id}/notes`, { notes })
     return transformCall(raw)
@@ -97,6 +128,15 @@ export async function updateCallNotes(id: number, notes: string): Promise<Call> 
 }
 
 export async function updateCallCallback(id: number): Promise<Call> {
+  if (!USE_BACKEND) {
+    const call = mockCalls.find(c => c.id === id)
+    if (call) {
+      call.callbackCompleted = true
+      call.callbackCompletedAt = new Date().toISOString()
+      return call
+    }
+    throw new Error('Call not found')
+  }
   try {
     const raw = await api.patch<CallRaw>(`/calls/${id}/callback`)
     return transformCall(raw)
@@ -112,6 +152,11 @@ export async function updateCallCallback(id: number): Promise<Call> {
 }
 
 export async function deleteCall(id: number): Promise<void> {
+  if (!USE_BACKEND) {
+    const idx = mockCalls.findIndex(c => c.id === id)
+    if (idx !== -1) mockCalls.splice(idx, 1)
+    return
+  }
   try {
     await api.delete(`/calls/${id}`)
   } catch {
